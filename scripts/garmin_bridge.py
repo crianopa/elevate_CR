@@ -17,9 +17,27 @@ from garminconnect import (
 )
 
 TOKEN_STORE_DIR = os.path.expanduser("~/.garminconnect")
+REPO_ROOT = Path(__file__).resolve().parent.parent
+
+
+def load_env_file(env_path: Path):
+    """Loads key=value pairs from a .env file into os.environ without external dependencies."""
+    if not env_path.exists():
+        return
+    with open(env_path, "r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            key, val = line.split("=", 1)
+            key = key.strip()
+            val = val.strip().strip('"').strip("'")
+            if key and key not in os.environ:
+                os.environ[key] = val
 
 
 def get_client(payload: dict = None) -> Garmin:
+    load_env_file(REPO_ROOT / ".env")
     token_dir = Path(TOKEN_STORE_DIR)
     token_file = token_dir / "session.json"
 

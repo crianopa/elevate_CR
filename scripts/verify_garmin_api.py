@@ -8,6 +8,7 @@ As specified in .agents/agents/api_engineer.md.
 import os
 import sys
 import json
+import tempfile
 from pathlib import Path
 from garminconnect import (
     Garmin,
@@ -17,9 +18,27 @@ from garminconnect import (
 )
 
 TOKEN_STORE_DIR = os.path.expanduser("~/.garminconnect")
+REPO_ROOT = Path(__file__).resolve().parent.parent
+
+
+def load_env_file(env_path: Path):
+    """Loads key=value pairs from a .env file into os.environ without external dependencies."""
+    if not env_path.exists():
+        return
+    with open(env_path, "r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            key, val = line.split("=", 1)
+            key = key.strip()
+            val = val.strip().strip('"').strip("'")
+            if key and key not in os.environ:
+                os.environ[key] = val
 
 
 def get_garmin_client() -> Garmin:
+    load_env_file(REPO_ROOT / ".env")
     email = os.environ.get("GARMIN_EMAIL")
     password = os.environ.get("GARMIN_PASSWORD")
 
@@ -41,8 +60,10 @@ def get_garmin_client() -> Garmin:
             print(f"[GarminAuth] Cached token login failed ({e}). Falling back to credentials login...")
 
     if not email or not password:
-        print("[GarminAuth] ERROR: GARMIN_EMAIL and GARMIN_PASSWORD environment variables are required.")
-        print("Please export them:\n  export GARMIN_EMAIL='your_email@example.com'\n  export GARMIN_PASSWORD='your_password'")
+        print("[GarminAuth] ERROR: GARMIN_EMAIL and GARMIN_PASSWORD were not found.")
+        print(f"Please create a .env file at {REPO_ROOT / '.env'} with:")
+        print("  GARMIN_EMAIL=your_email@example.com")
+        print("  GARMIN_PASSWORD=your_password")
         sys.exit(1)
 
     print(f"[GarminAuth] Authenticating to Garmin Connect as {email}...")
@@ -99,7 +120,7 @@ def main():
         print(f"\n[GarminAPI] Testing raw activity download for activity #{latest_id}...")
         try:
             fit_data = client.download_activity(latest_id, dl_fmt=client.ActivityDownloadFormat.ORIGINAL)
-            download_path = Path("/tmp") / f"garmin_activity_{latest_id}.zip"
+            download_path = Path(tempfile.gettempdir()) / f"garmin_activity_{latest_id}.zip"
             with open(download_path, "wb") as f:
                 f.write(fit_data)
             print(f"[GarminAPI] Downloaded raw activity archive ({len(fit_data)} bytes) to {download_path}")
