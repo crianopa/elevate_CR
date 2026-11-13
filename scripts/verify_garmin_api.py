@@ -51,9 +51,7 @@ def get_garmin_client() -> Garmin:
     if token_file.exists():
         try:
             print(f"[GarminAuth] Found existing session tokens at {token_file}. Attempting to restore...")
-            with open(token_file, "r", encoding="utf-8") as f:
-                token_data = f.read()
-            client.login(token_data)
+            client.login(str(token_file))
             print("[GarminAuth] Successfully restored session from cache.")
             return client
         except Exception as e:
@@ -69,10 +67,19 @@ def get_garmin_client() -> Garmin:
     print(f"[GarminAuth] Authenticating to Garmin Connect as {email}...")
     try:
         client.login()
-        tokens = client.garth.dumps()
-        with open(token_file, "w", encoding="utf-8") as f:
-            f.write(tokens)
-        print(f"[GarminAuth] Successfully authenticated and saved session tokens to {token_file}.")
+        if hasattr(client, "client") and hasattr(client.client, "dumps"):
+            tokens = client.client.dumps()
+        elif hasattr(client, "garth") and hasattr(client.garth, "dumps"):
+            tokens = client.garth.dumps()
+        else:
+            tokens = None
+
+        if tokens:
+            with open(token_file, "w", encoding="utf-8") as f:
+                f.write(tokens)
+            print(f"[GarminAuth] Successfully authenticated and saved session tokens to {token_file}.")
+        else:
+            print("[GarminAuth] Successfully authenticated.")
     except GarminConnectAuthenticationError as e:
         print(f"[GarminAuth] Authentication error: {e}")
         sys.exit(1)
