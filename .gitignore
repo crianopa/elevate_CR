@@ -3,6 +3,7 @@
 **/dist/
 **/package/
 **/coverage/
+.agents/
 
 # OS
 .DS_Store
