@@ -8,6 +8,11 @@ import {
 } from "../../../shared/services/links-opener/open-resource-resolver";
 import { Router } from "@angular/router";
 import { MatDialog } from "@angular/material/dialog";
+import { GarminConnectorInfoService } from "../../../shared/services/garmin-connector-info/garmin-connector-info.service";
+import { GarminConnectorService } from "./garmin-connector.service";
+import { GarminConnectorInfo } from "@elevate/shared/sync/connectors/garmin-connector-info.model";
+import { ConnectorType } from "@elevate/shared/sync/connectors/connector-type.enum";
+import { Subscription } from "rxjs";
 
 @Component({
   selector: "app-garmin-connect",
@@ -15,16 +20,59 @@ import { MatDialog } from "@angular/material/dialog";
   styleUrls: ["./garmin-connect.component.scss"]
 })
 export class GarminConnectComponent extends ConnectorsComponent implements OnInit, OnDestroy {
+  public garminConnectorInfo: GarminConnectorInfo;
+  public connectorType = ConnectorType.GARMIN;
+  public isConnected = false;
+  private infoSubscription: Subscription;
+
   constructor(
     @Inject(SyncService) protected readonly desktopSyncService: DesktopSyncService,
+    @Inject(GarminConnectorService) protected readonly garminConnectorService: GarminConnectorService,
     @Inject(OPEN_RESOURCE_RESOLVER) protected readonly openResourceResolver: OpenResourceResolver,
     @Inject(Router) protected readonly router: Router,
-    @Inject(MatDialog) protected readonly dialog: MatDialog
+    @Inject(MatDialog) protected readonly dialog: MatDialog,
+    @Inject(GarminConnectorInfoService) private readonly garminConnectorInfoService: GarminConnectorInfoService
   ) {
     super(desktopSyncService, openResourceResolver, router, dialog);
   }
 
-  public ngOnInit(): void {}
+  public ngOnInit(): void {
+    this.garminConnectorInfoService.fetch().then(info => {
+      this.garminConnectorInfo = info || new GarminConnectorInfo();
+      this.isConnected = !!(this.garminConnectorInfo.email || this.garminConnectorInfo.personalApiKey);
+    });
 
-  public ngOnDestroy(): void {}
+    this.infoSubscription = this.garminConnectorInfoService.info$.subscribe(info => {
+      this.garminConnectorInfo = info;
+      this.isConnected = !!(info.email || info.personalApiKey);
+    });
+
+    this.updateSyncDateTimeText();
+  }
+
+  public onSave(): void {
+    this.garminConnectorInfoService.update(this.garminConnectorInfo).then(updated => {
+      this.garminConnectorInfo = updated;
+      this.isConnected = !!(updated.email || updated.personalApiKey);
+    });
+  }
+
+  public sync(fastSync: boolean = null, forceSync: boolean = null): Promise<void> {
+    return this.garminConnectorService.sync(fastSync, forceSync).catch(err => {
+      if (err !== ConnectorsComponent.ATHLETE_CHECKING_FIRST_SYNC_MESSAGE) {
+        return Promise.reject(err);
+      }
+      return Promise.resolve();
+    });
+  }
+
+  public onSync(): void {
+    this.sync();
+  }
+
+  public ngOnDestroy(): void {
+    if (this.infoSubscription) {
+      this.infoSubscription.unsubscribe();
+    }
+  }
 }

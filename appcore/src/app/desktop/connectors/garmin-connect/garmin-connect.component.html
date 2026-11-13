@@ -1,10 +1,36 @@
-<mat-card>
-  <mat-card-title>
-    Garmin Connect
-  </mat-card-title>
-  <mat-card-subtitle>
-  </mat-card-subtitle>
-  <mat-card-content>
-    Coming during beta
+<mat-card class="connector-card">
+  <mat-card-header>
+    <div mat-card-avatar class="garmin-header-image">
+      <mat-icon>watch</mat-icon>
+    </div>
+    <mat-card-title>Garmin Connect</mat-card-title>
+    <mat-card-subtitle>Synchronize activities directly from your Garmin Connect account</mat-card-subtitle>
+  </mat-card-header>
+
+  <mat-card-content *ngIf="garminConnectorInfo">
+    <div fxLayout="column" fxLayoutGap="16px">
+      <mat-form-field appearance="outline" fxFill>
+        <mat-label>Garmin Account Email</mat-label>
+        <input matInput type="email" placeholder="user@example.com" [(ngModel)]="garminConnectorInfo.email" (change)="onSave()">
+        <mat-hint>Your Garmin Connect login email. Credentials are stored securely locally.</mat-hint>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" fxFill>
+        <mat-label>Personal API Key (Optional)</mat-label>
+        <input matInput type="password" placeholder="Garmin Connect Personal API Key" [(ngModel)]="garminConnectorInfo.personalApiKey" (change)="onSave()">
+        <mat-hint>Optional: Generated in Garmin Connect Web Settings.</mat-hint>
+      </mat-form-field>
+
+      <mat-slide-toggle [(ngModel)]="garminConnectorInfo.updateExistingNamesTypesCommutes" (change)="onSave()">
+        Update names and sport types of existing activities
+      </mat-slide-toggle>
+    </div>
   </mat-card-content>
+
+  <mat-card-actions align="end">
+    <button mat-raised-button color="primary" (click)="onSync()" [disabled]="desktopSyncService.isSyncing">
+      <mat-icon>sync</mat-icon>
+      <span>Sync with Garmin</span>
+    </button>
+  </mat-card-actions>
 </mat-card>

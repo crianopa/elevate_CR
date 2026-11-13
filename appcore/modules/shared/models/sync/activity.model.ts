@@ -267,6 +267,9 @@ export interface ActivityExtras {
   strava?: {
     activityId: number;
   };
+  garmin?: {
+    activityId: number | string;
+  };
   file?: { path: string; type: ActivityFileType };
 }
 

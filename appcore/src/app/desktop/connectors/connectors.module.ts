@@ -7,6 +7,9 @@ import { StravaConnectorService } from "./strava-connector/strava-connector.serv
 import { FileConnectorComponent } from "./file-connector/file-connector.component";
 import { FileConnectorService } from "./file-connector/file-connector.service";
 import { GarminConnectComponent } from "./garmin-connect/garmin-connect.component";
+import { GarminConnectorInfoDao } from "../../shared/dao/garmin-connector-info/garmin-connector-info.dao";
+import { GarminConnectorInfoService } from "../../shared/services/garmin-connector-info/garmin-connector-info.service";
+import { GarminConnectorService } from "./garmin-connect/garmin-connector.service";
 
 const routes: Routes = [
   {
@@ -18,6 +21,12 @@ const routes: Routes = [
 @NgModule({
   imports: [CoreModule, RouterModule.forChild(routes)],
   declarations: [ConnectorsComponent, StravaConnectorComponent, FileConnectorComponent, GarminConnectComponent],
-  providers: [StravaConnectorService, FileConnectorService]
+  providers: [
+    StravaConnectorService,
+    FileConnectorService,
+    GarminConnectorService,
+    GarminConnectorInfoDao,
+    GarminConnectorInfoService
+  ]
 })
 export class ConnectorsModule {}

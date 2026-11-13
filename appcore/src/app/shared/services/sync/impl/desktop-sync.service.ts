@@ -7,6 +7,7 @@ import { LoggerService } from "../../logging/logger.service";
 import { Subject, Subscription } from "rxjs";
 import { IpcSyncMessagesListener } from "../../../../desktop/ipc/ipc-sync-messages-listener.service";
 import { StravaConnectorInfoService } from "../../strava-connector-info/strava-connector-info.service";
+import { GarminConnectorInfoService } from "../../garmin-connector-info/garmin-connector-info.service";
 import { ActivityService } from "../../activity/activity.service";
 import _ from "lodash";
 import { SyncState } from "../sync-state.enum";
@@ -59,6 +60,10 @@ export class DesktopSyncService extends SyncService<ConnectorSyncDateTime[]> imp
       () => this.activityService.findMostRecent().then(activity => Promise.resolve(activity.startTimestamp * 1000))
     ],
     [
+      ConnectorType.GARMIN,
+      () => this.activityService.findMostRecent().then(activity => Promise.resolve(activity.startTimestamp * 1000))
+    ],
+    [
       ConnectorType.FILE,
       () =>
         this.connectorSyncDateTimeDao
@@ -79,6 +84,7 @@ export class DesktopSyncService extends SyncService<ConnectorSyncDateTime[]> imp
     @Inject(IpcSyncMessagesListener) public readonly ipcSyncMessagesListener: IpcSyncMessagesListener,
     @Inject(IpcSyncMessageSender) public readonly ipcSyncMessageSender: IpcSyncMessageSender,
     @Inject(StravaConnectorInfoService) public readonly stravaConnectorInfoService: StravaConnectorInfoService,
+    @Inject(GarminConnectorInfoService) public readonly garminConnectorInfoService: GarminConnectorInfoService,
     @Inject(FileConnectorInfoService) public readonly fsConnectorInfoService: FileConnectorInfoService,
     @Inject(DesktopInsightsService) private readonly insightsService: DesktopInsightsService,
     @Inject(LoggerService) public readonly logger: LoggerService,
@@ -141,6 +147,8 @@ export class DesktopSyncService extends SyncService<ConnectorSyncDateTime[]> imp
 
     if (this.currentConnectorType === ConnectorType.STRAVA) {
       promisedDataToSync.push(this.stravaConnectorInfoService.fetch());
+    } else if (this.currentConnectorType === ConnectorType.GARMIN) {
+      promisedDataToSync.push(this.garminConnectorInfoService.fetch());
     } else if (this.currentConnectorType === ConnectorType.FILE) {
       promisedDataToSync.push(Promise.resolve(this.fsConnectorInfoService.fetch()));
     } else {
@@ -191,6 +199,16 @@ export class DesktopSyncService extends SyncService<ConnectorSyncDateTime[]> imp
           startSyncParamPromise = Promise.resolve({
             connectorType: this.currentConnectorType,
             connectorInfo: stravaConnectorInfo,
+            athleteModel: athleteModel,
+            userSettings: userSettings,
+            syncFromDateTime: syncFromDateTime
+          });
+        } else if (this.currentConnectorType === ConnectorType.GARMIN) {
+          const garminConnectorInfo = result[4] as ConnectorInfo;
+
+          startSyncParamPromise = Promise.resolve({
+            connectorType: this.currentConnectorType,
+            connectorInfo: garminConnectorInfo,
             athleteModel: athleteModel,
             userSettings: userSettings,
             syncFromDateTime: syncFromDateTime
