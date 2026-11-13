@@ -49,20 +49,26 @@ def get_client(payload: dict = None) -> Garmin:
 
     if token_file.exists():
         try:
-            with open(token_file, "r", encoding="utf-8") as f:
-                token_data = f.read()
-            client.login(token_data)
+            client.login(str(token_file))
             return client
         except Exception:
             pass
 
     if not email or not password:
-        raise ValueError("GARMIN_EMAIL and GARMIN_PASSWORD are required (via UI config or environment variables).")
+        raise ValueError("GARMIN_EMAIL and GARMIN_PASSWORD are required (via UI config, .env, or environment variables).")
 
     client.login()
     token_dir.mkdir(parents=True, exist_ok=True)
-    with open(token_file, "w", encoding="utf-8") as f:
-        f.write(client.garth.dumps())
+    if hasattr(client, "client") and hasattr(client.client, "dumps"):
+        tokens = client.client.dumps()
+    elif hasattr(client, "garth") and hasattr(client.garth, "dumps"):
+        tokens = client.garth.dumps()
+    else:
+        tokens = None
+
+    if tokens:
+        with open(token_file, "w", encoding="utf-8") as f:
+            f.write(tokens)
 
     return client
 
