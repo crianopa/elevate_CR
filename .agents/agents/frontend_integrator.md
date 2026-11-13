@@ -1,5 +1,5 @@
 ---
-name: "Frontend Especialist"
+name: "Frontend Integrator"
 description: "Frontend UI/UX Specialist for the Elevate Garmin Migration project."
 mainAgent: false
 mcpServers:
