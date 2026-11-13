@@ -13,7 +13,10 @@ export class GarminApiClient {
   constructor(@inject(Logger) private readonly logger: Logger) {
     const rootDir = path.resolve(__dirname, "../../..");
     this.pythonScriptPath = path.join(rootDir, "scripts", "garmin_bridge.py");
-    this.venvPythonPath = path.join(rootDir, ".venv", "bin", "python");
+    const isWin = process.platform === "win32";
+    this.venvPythonPath = isWin
+      ? path.join(rootDir, ".venv", "Scripts", "python.exe")
+      : path.join(rootDir, ".venv", "bin", "python");
   }
 
   /**
@@ -21,7 +24,8 @@ export class GarminApiClient {
    */
   public executeBridge<T>(command: string, args: Record<string, any> = {}): Promise<T> {
     return new Promise((resolve, reject) => {
-      const pythonExecutable = fs.existsSync(this.venvPythonPath) ? this.venvPythonPath : "python3";
+      const defaultPython = process.platform === "win32" ? "python" : "python3";
+      const pythonExecutable = fs.existsSync(this.venvPythonPath) ? this.venvPythonPath : defaultPython;
       const payload = JSON.stringify({ command, ...args });
 
       this.logger.debug(`[GarminApiClient] Spawning bridge command: ${command}`);
