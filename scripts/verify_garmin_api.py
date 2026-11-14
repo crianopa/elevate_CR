@@ -121,9 +121,20 @@ def main():
     client = get_garmin_client()
     activities = verify_and_fetch_activities(client, count=10)
 
-    # Optional download check of the latest activity if present
     if activities and len(activities) > 0:
         latest_id = activities[0].get("activityId")
+        print(f"\n[GarminAPI] Testing get_activity_details for activity #{latest_id}...")
+        try:
+            details = client.get_activity_details(latest_id)
+            descriptors = details.get("metricsDescriptors", [])
+            print(f"[GarminAPI] Retrieved {len(descriptors)} metric descriptors from activity details:")
+            for d in descriptors:
+                print(f"  - index {d.get('metricsIndex')}: key='{d.get('key')}' unit={d.get('unit')}")
+            metrics_count = len(details.get("activityDetailMetrics", []))
+            print(f"[GarminAPI] Total metric sample rows: {metrics_count}")
+        except Exception as e:
+            print(f"[GarminAPI] Error fetching activity details: {e}")
+
         print(f"\n[GarminAPI] Testing raw activity download for activity #{latest_id}...")
         try:
             fit_data = client.download_activity(latest_id, dl_fmt=client.ActivityDownloadFormat.ORIGINAL)
