@@ -9,11 +9,12 @@ import { GarminRawActivitySummary, GarminActivityDetailsResponse } from "../conn
 export class GarminApiClient {
   private getRootDir(): string {
     const candidates = [
+      process.resourcesPath,
       process.cwd(),
       path.resolve(__dirname, "../.."),
       path.resolve(__dirname, "../../.."),
       path.resolve(__dirname, "..")
-    ];
+    ].filter(Boolean);
     for (const candidate of candidates) {
       if (fs.existsSync(path.join(candidate, "scripts", "garmin_bridge.py"))) {
         return candidate;

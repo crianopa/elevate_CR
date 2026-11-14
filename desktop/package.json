@@ -125,6 +125,12 @@
     "asarUnpack": [
       "./dist/workers/*"
     ],
+    "extraResources": [
+      {
+        "from": "../scripts/garmin_bridge.py",
+        "to": "scripts/garmin_bridge.py"
+      }
+    ],
     "publish": {
       "provider": "github",
       "owner": "thomaschampagne",
