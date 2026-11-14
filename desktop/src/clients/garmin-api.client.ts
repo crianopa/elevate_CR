@@ -7,30 +7,51 @@ import { GarminRawActivitySummary, GarminActivityDetailsResponse } from "../conn
 
 @singleton()
 export class GarminApiClient {
-  private readonly pythonScriptPath: string;
-  private readonly venvPythonPath: string;
-
-  constructor(@inject(Logger) private readonly logger: Logger) {
-    const rootDir = path.resolve(__dirname, "../../..");
-    this.pythonScriptPath = path.join(rootDir, "scripts", "garmin_bridge.py");
-    const isWin = process.platform === "win32";
-    this.venvPythonPath = isWin
-      ? path.join(rootDir, ".venv", "Scripts", "python.exe")
-      : path.join(rootDir, ".venv", "bin", "python");
+  private getRootDir(): string {
+    const candidates = [
+      process.cwd(),
+      path.resolve(__dirname, "../.."),
+      path.resolve(__dirname, "../../.."),
+      path.resolve(__dirname, "..")
+    ];
+    for (const candidate of candidates) {
+      if (fs.existsSync(path.join(candidate, "scripts", "garmin_bridge.py"))) {
+        return candidate;
+      }
+    }
+    return process.cwd();
   }
+
+  private getPythonExecutable(rootDir: string): string {
+    const isWin = process.platform === "win32";
+    const venvCandidates = [
+      path.join(rootDir, ".venv", isWin ? "Scripts" : "bin", isWin ? "python.exe" : "python"),
+      path.join(process.cwd(), ".venv", isWin ? "Scripts" : "bin", isWin ? "python.exe" : "python")
+    ];
+    for (const venvPath of venvCandidates) {
+      if (fs.existsSync(venvPath)) {
+        return venvPath;
+      }
+    }
+    return isWin ? "python" : "python3";
+  }
+
+  constructor(@inject(Logger) private readonly logger: Logger) {}
 
   /**
    * Executes a command against the python-garminconnect bridge script.
    */
   public executeBridge<T>(command: string, args: Record<string, any> = {}): Promise<T> {
     return new Promise((resolve, reject) => {
-      const defaultPython = process.platform === "win32" ? "python" : "python3";
-      const pythonExecutable = fs.existsSync(this.venvPythonPath) ? this.venvPythonPath : defaultPython;
+      const rootDir = this.getRootDir();
+      const pythonScriptPath = path.join(rootDir, "scripts", "garmin_bridge.py");
+      const pythonExecutable = this.getPythonExecutable(rootDir);
       const payload = JSON.stringify({ command, ...args });
 
-      this.logger.debug(`[GarminApiClient] Spawning bridge command: ${command}`);
+      this.logger.info(`[GarminApiClient] Spawning bridge: ${pythonExecutable} ${pythonScriptPath} ${command}`);
 
-      const child = spawn(pythonExecutable, [this.pythonScriptPath, command], {
+      const child = spawn(pythonExecutable, [pythonScriptPath, command], {
+        cwd: rootDir,
         env: {
           ...process.env
         }
