@@ -126,12 +126,18 @@ def main():
         print(f"\n[GarminAPI] Testing get_activity_details for activity #{latest_id}...")
         try:
             details = client.get_activity_details(latest_id)
-            descriptors = details.get("metricsDescriptors", [])
-            print(f"[GarminAPI] Retrieved {len(descriptors)} metric descriptors from activity details:")
-            for d in descriptors:
-                print(f"  - index {d.get('metricsIndex')}: key='{d.get('key')}' unit={d.get('unit')}")
-            metrics_count = len(details.get("activityDetailMetrics", []))
-            print(f"[GarminAPI] Total metric sample rows: {metrics_count}")
+            print(f"[GarminAPI] Top-level keys in details: {list(details.keys())}")
+            metric_descriptors = details.get("metricDescriptors") or details.get("metricsDescriptors") or []
+            print(f"[GarminAPI] Retrieved {len(metric_descriptors)} metric descriptors from activity details:")
+            for d in metric_descriptors[:15]:
+                print(f"  - index {d.get('metricsIndex')}: key='{d.get('key')}'")
+            sample_rows = details.get("activityDetailMetrics", [])
+            print(f"[GarminAPI] Total metric sample rows: {len(sample_rows)}")
+            if sample_rows:
+                first_row = sample_rows[0]
+                print(f"[GarminAPI] Sample row keys: {list(first_row.keys()) if isinstance(first_row, dict) else type(first_row)}")
+                if isinstance(first_row, dict):
+                    print(f"[GarminAPI] Sample row metrics: {first_row.get('metrics', [])[:10]}")
         except Exception as e:
             print(f"[GarminAPI] Error fetching activity details: {e}")
 
