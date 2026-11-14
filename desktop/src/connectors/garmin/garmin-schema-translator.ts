@@ -123,6 +123,7 @@ export interface GarminMetricDescriptor {
 export interface GarminActivityDetailsResponse {
   activityId: number;
   measurementCount?: number;
+  metricDescriptors?: GarminMetricDescriptor[];
   metricsDescriptors?: GarminMetricDescriptor[];
   activityDetailMetrics?: Array<{
     metrics: number[];
@@ -270,6 +271,26 @@ export class GarminSchemaTranslator {
       srcStats.pace.max = Movement.speedToPace(srcStats.speed.max);
     }
 
+    // Heart Rate stats from summary
+    if (garminSummary.averageHR || garminSummary.maxHR) {
+      srcStats.heartRate = {
+        avg: garminSummary.averageHR ? _.round(garminSummary.averageHR) : null,
+        max: garminSummary.maxHR ? _.round(garminSummary.maxHR) : null
+      } as any;
+    }
+
+    // Cadence stats from summary
+    const avgCadence =
+      garminSummary.averageRunningCadenceInStepsPerMinute || garminSummary.averageBikingCadenceInRevPerMinute;
+    const maxCadence =
+      garminSummary.maxRunningCadenceInStepsPerMinute || garminSummary.maxBikingCadenceInRevPerMinute;
+    if (avgCadence || maxCadence) {
+      srcStats.cadence = {
+        avg: avgCadence ? _.round(avgCadence) : null,
+        max: maxCadence ? _.round(maxCadence) : null
+      } as any;
+    }
+
     // Swim SWOLF
     const swimCadence = garminSummary.averageSwimCadenceInStrokesPerMinute;
     if (Activity.isSwim(sport) && srcStats.speed?.avg && swimCadence) {
@@ -355,7 +376,7 @@ export class GarminSchemaTranslator {
       return null;
     }
 
-    const descriptors = details.metricsDescriptors || [];
+    const descriptors = details.metricDescriptors || details.metricsDescriptors || [];
     const keyToIndex = new Map<string, number>();
     descriptors.forEach(d => {
       keyToIndex.set(d.key, d.metricsIndex);
