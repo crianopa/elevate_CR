@@ -67,16 +67,18 @@ export class GarminConnector extends BaseConnector {
           this.isSyncing = false;
           this.syncEvents$.complete();
         },
-        (syncEvent: SyncEvent) => {
+        (syncError: any) => {
           this.isSyncing = false;
-          const isCancelEvent = syncEvent?.type === SyncEventType.STOPPED;
+          const isCancelEvent = syncError?.type === SyncEventType.STOPPED;
 
           if (isCancelEvent) {
-            this.syncEvents$.next(syncEvent);
+            this.syncEvents$.next(syncError);
           } else {
+            const errorMessage = syncError instanceof Error ? syncError.message : String(syncError?.message || syncError);
+            this.logger.error(`[GarminConnector] Sync failed: ${errorMessage}`, syncError);
+            this.syncEvents$.next(ErrorSyncEvent.UNHANDLED_ERROR_SYNC.create(this.type, errorMessage));
             this.syncEvents$.next(new StoppedSyncEvent(this.type));
-            this.syncEvents$.error(syncEvent);
-            this.logger.error(syncEvent);
+            this.syncEvents$.error(syncError);
           }
         }
       );
