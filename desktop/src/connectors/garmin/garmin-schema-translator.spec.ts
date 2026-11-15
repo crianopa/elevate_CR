@@ -107,4 +107,30 @@ describe("GarminSchemaTranslator", () => {
     expect(streams.cadence).toEqual([80, 81, 82]);
     expect(streams.watts).toEqual([180, 185, 190]);
   });
+
+  it("should filter out null and [0, 0] GPS coordinates without plotting Null Island", () => {
+    const sampleDetails: GarminActivityDetailsResponse = {
+      activityId: 987654321,
+      metricDescriptors: [
+        { metricsIndex: 0, key: "directTimestamp" },
+        { metricsIndex: 1, key: "directLatitude" },
+        { metricsIndex: 2, key: "directLongitude" }
+      ],
+      activityDetailMetrics: [
+        { metrics: [1683703800000, null, null] },
+        { metrics: [1683703801000, 41.28, 1.98] },
+        { metrics: [1683703802000, 0, 0] },
+        { metrics: [1683703803000, 41.29, 1.99] }
+      ]
+    };
+
+    const streams = GarminSchemaTranslator.toStreamsFromDetails(sampleDetails);
+
+    expect(streams.latlng).toEqual([
+      [41.28, 1.98],
+      [41.28, 1.98],
+      [41.28, 1.98],
+      [41.29, 1.99]
+    ]);
+  });
 });

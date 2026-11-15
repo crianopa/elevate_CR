@@ -405,6 +405,7 @@ export class GarminSchemaTranslator {
     const hasTime = keyToIndex.has("directTimestamp");
 
     let firstTimestamp: number = null;
+    let lastValidLatLng: [number, number] = null;
 
     for (let i = 0; i < details.activityDetailMetrics.length; i++) {
       const metricRow = details.activityDetailMetrics[i].metrics;
@@ -412,49 +413,92 @@ export class GarminSchemaTranslator {
       // Time calculation
       if (hasTime) {
         const ts = metricRow[keyToIndex.get("directTimestamp")];
-        if (firstTimestamp === null) {
+        if (firstTimestamp === null && typeof ts === "number" && Number.isFinite(ts)) {
           firstTimestamp = ts;
         }
-        streams.time.push(Math.round((ts - firstTimestamp) / 1000));
+        streams.time.push(
+          firstTimestamp !== null && typeof ts === "number" && Number.isFinite(ts)
+            ? Math.round((ts - firstTimestamp) / 1000)
+            : i
+        );
       } else {
         streams.time.push(i);
       }
 
-      // Lat / Lon
+      // Lat / Lon (skip null/undefined/[0,0] to avoid plotting Null Island in the ocean)
       if (hasLat && hasLon) {
         const lat = metricRow[keyToIndex.get("directLatitude")];
         const lon = metricRow[keyToIndex.get("directLongitude")];
-        streams.latlng.push([lat, lon]);
+        if (
+          typeof lat === "number" &&
+          typeof lon === "number" &&
+          Number.isFinite(lat) &&
+          Number.isFinite(lon) &&
+          !(lat === 0 && lon === 0) &&
+          Math.abs(lat) <= 90 &&
+          Math.abs(lon) <= 180
+        ) {
+          lastValidLatLng = [lat, lon];
+          streams.latlng.push(lastValidLatLng);
+        } else if (lastValidLatLng) {
+          streams.latlng.push(lastValidLatLng);
+        } else {
+          streams.latlng.push(null);
+        }
       }
 
       // Altitude
       if (hasElevation) {
-        streams.altitude.push(metricRow[keyToIndex.get("directElevation")]);
+        const val = metricRow[keyToIndex.get("directElevation")];
+        streams.altitude.push(typeof val === "number" && Number.isFinite(val) ? val : 0);
       }
 
       // Velocity (m/s)
       if (hasSpeed) {
-        streams.velocity_smooth.push(metricRow[keyToIndex.get("directSpeed")]);
+        const val = metricRow[keyToIndex.get("directSpeed")];
+        streams.velocity_smooth.push(typeof val === "number" && Number.isFinite(val) ? val : 0);
       }
 
       // Distance (m)
       if (hasDist) {
-        streams.distance.push(metricRow[keyToIndex.get("directDistance")]);
+        const val = metricRow[keyToIndex.get("directDistance")];
+        const prev = streams.distance.length > 0 ? streams.distance[streams.distance.length - 1] : 0;
+        streams.distance.push(typeof val === "number" && Number.isFinite(val) ? val : prev);
       }
 
       // Heartrate
       if (hasHR) {
-        streams.heartrate.push(metricRow[keyToIndex.get("directHeartRate")]);
+        const val = metricRow[keyToIndex.get("directHeartRate")];
+        const prev = streams.heartrate.length > 0 ? streams.heartrate[streams.heartrate.length - 1] : 0;
+        streams.heartrate.push(typeof val === "number" && Number.isFinite(val) ? val : prev);
       }
 
       // Cadence
       if (hasCadence) {
-        streams.cadence.push(metricRow[keyToIndex.get(cadenceKey)]);
+        const val = metricRow[keyToIndex.get(cadenceKey)];
+        streams.cadence.push(typeof val === "number" && Number.isFinite(val) ? val : 0);
       }
 
       // Power
       if (hasPower) {
-        streams.watts.push(metricRow[keyToIndex.get("directPower")]);
+        const val = metricRow[keyToIndex.get("directPower")];
+        streams.watts.push(typeof val === "number" && Number.isFinite(val) ? val : 0);
+      }
+    }
+
+    // Backfill leading null GPS coordinates with first valid point, or clear if none exist
+    if (streams.latlng.length > 0) {
+      const firstValidLatLng = streams.latlng.find(p => p !== null);
+      if (firstValidLatLng) {
+        for (let i = 0; i < streams.latlng.length; i++) {
+          if (streams.latlng[i] === null) {
+            streams.latlng[i] = firstValidLatLng;
+          } else {
+            break;
+          }
+        }
+      } else {
+        streams.latlng = [];
       }
     }
 
