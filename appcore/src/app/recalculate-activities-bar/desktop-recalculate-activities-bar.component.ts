@@ -104,6 +104,7 @@ export class DesktopRecalculateActivitiesBarComponent extends RecalculateActivit
   public statusText: string;
   public processed: number;
   public toBeProcessed: number;
+  private recalculationPending = false;
 
   constructor(
     @Inject(Router) protected readonly router: Router,
@@ -119,6 +120,13 @@ export class DesktopRecalculateActivitiesBarComponent extends RecalculateActivit
 
   public ngOnInit(): void {
     super.ngOnInit();
+
+    // Always recalculate when athlete settings (max HR, rest HR, LTHR, FTP, weight...) change
+    this.activityService.athleteSettingsConsistency$.subscribe((isConsistent: boolean) => {
+      if (!isConsistent) {
+        this.autoRecalculateOnSettingsChange();
+      }
+    });
 
     this.activityService.recalculate$.subscribe(
       (notification: ActivityRecalculateNotification) => {
@@ -141,6 +149,34 @@ export class DesktopRecalculateActivitiesBarComponent extends RecalculateActivit
         throw err;
       }
     );
+  }
+
+  /**
+   * Automatically recalculate all activities impacted by athlete settings changes (no manual click required).
+   * If a recalculation is already running, re-check once it is over to catch changes done in the meantime.
+   */
+  private autoRecalculateOnSettingsChange(): void {
+    if (this.activityService.isRecalculating) {
+      this.recalculationPending = true;
+      return;
+    }
+    this.recalculationPending = false;
+    this.userSettingsService.fetch().then((userSettings: DesktopUserSettings) => {
+      this.activityService.nonConsistentActivitiesWithAthleteSettings().then((activitiesIds: number[]) => {
+        if (!activitiesIds.length) {
+          return;
+        }
+        this.hideSettingsConsistencyWarning = true;
+        this.activityService
+          .recalculateFromIds(activitiesIds, userSettings)
+          .then(() => {
+            if (this.recalculationPending) {
+              this.activityService.verifyConsistencyWithAthleteSettings();
+            }
+          })
+          .catch(err => this.logger.error(err));
+      });
+    });
   }
 
   public onFixActivities(): void {

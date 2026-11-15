@@ -67,7 +67,11 @@ export class GarminConnectComponent extends ConnectorsComponent implements OnIni
   }
 
   public onSync(): void {
-    this.sync();
+    this.sync(true); // Fast sync: only new activities
+  }
+
+  public onSyncAll(): void {
+    this.sync(false); // Full sync: scan every activity
   }
 
   public ngOnDestroy(): void {

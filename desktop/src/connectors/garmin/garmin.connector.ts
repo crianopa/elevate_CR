@@ -111,6 +111,11 @@ export class GarminConnector extends BaseConnector {
           if (garminSummaries && garminSummaries.length > 0) {
             this.processGarminActivities(syncEvents$, garminSummaries).then(
               () => {
+                // Garmin returns newest first: once a page reaches activities older than syncFromDateTime, stop paging
+                if (this.syncFromDateTime && this.isPageOlderThanSyncDate(garminSummaries)) {
+                  resolve();
+                  return;
+                }
                 const nextOffset = offset + limit;
                 resolve(this.syncPages(syncEvents$, nextOffset, limit));
               },
@@ -123,6 +128,12 @@ export class GarminConnector extends BaseConnector {
         error => reject(error)
       );
     });
+  }
+
+  private isPageOlderThanSyncDate(garminSummaries: GarminRawActivitySummary[]): boolean {
+    return garminSummaries.some(
+      summary => GarminSchemaTranslator.toBareActivity(summary).startTimestamp * 1000 < this.syncFromDateTime
+    );
   }
 
   public processGarminActivities(

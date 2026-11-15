@@ -28,9 +28,13 @@
   </mat-card-content>
 
   <mat-card-actions align="end">
+    <button mat-stroked-button (click)="onSyncAll()" [disabled]="(desktopSyncService.isSyncing$ | async)">
+      <mat-icon>sync_alt</mat-icon>
+      <span>Sync all activities</span>
+    </button>
     <button mat-raised-button color="primary" (click)="onSync()" [disabled]="(desktopSyncService.isSyncing$ | async)">
       <mat-icon>sync</mat-icon>
-      <span>Sync with Garmin</span>
+      <span>Sync new activities</span>
     </button>
   </mat-card-actions>
 </mat-card>
