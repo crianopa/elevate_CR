@@ -28,7 +28,7 @@
   </mat-card-content>
 
   <mat-card-actions align="end">
-    <button mat-raised-button color="primary" (click)="onSync()" [disabled]="desktopSyncService.isSyncing">
+    <button mat-raised-button color="primary" (click)="onSync()" [disabled]="(desktopSyncService.isSyncing$ | async)">
       <mat-icon>sync</mat-icon>
       <span>Sync with Garmin</span>
     </button>
