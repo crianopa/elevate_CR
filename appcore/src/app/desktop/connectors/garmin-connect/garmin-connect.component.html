@@ -28,6 +28,12 @@
   </mat-card-content>
 
   <mat-card-actions align="end">
+    <button mat-stroked-button (click)="onImportAthleteSettings()"
+            [disabled]="isImportingSettings || (desktopSyncService.isSyncing$ | async)"
+            matTooltip="Import running lactate threshold (HR and pace), running max HR and average resting HR of the last year into Athlete Settings">
+      <mat-icon>favorite</mat-icon>
+      <span>Import athlete settings</span>
+    </button>
     <button mat-stroked-button (click)="onSyncAll()" [disabled]="(desktopSyncService.isSyncing$ | async)">
       <mat-icon>sync_alt</mat-icon>
       <span>Sync all activities</span>

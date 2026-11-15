@@ -73,6 +73,71 @@ def get_client(payload: dict = None) -> Garmin:
     return client
 
 
+def get_athlete_metrics(client: Garmin) -> dict:
+    """
+    Collects physiological metrics used to update Elevate athlete settings:
+    - Running lactate threshold (heart rate + speed) -> LTHR and running threshold pace
+    - Running max HR over the last 365 days
+    - Average resting HR over the last 365 days
+    Each metric is fetched independently so a failure of one does not block the others.
+    """
+    from datetime import date, timedelta
+
+    today = date.today()
+    year_ago = today - timedelta(days=365)
+    result = {
+        "lactateThresholdHeartRate": None,
+        "lactateThresholdSpeedMps": None,
+        "runningMaxHeartRate": None,
+        "avgRestingHeartRate": None,
+        "errors": [],
+    }
+
+    try:
+        lt = client.get_lactate_threshold(latest=True)
+        shr = (lt or {}).get("speed_and_heart_rate") or {}
+        if shr.get("heartRate"):
+            result["lactateThresholdHeartRate"] = int(round(float(shr["heartRate"])))
+        speed = shr.get("speed")
+        if speed:
+            speed = float(speed)
+            # Garmin reports this value in 10 m/s units (e.g. 0.37 => 3.7 m/s)
+            result["lactateThresholdSpeedMps"] = speed * 10 if speed < 1 else speed
+    except Exception as e:
+        result["errors"].append(f"lactate threshold: {e}")
+
+    try:
+        max_hr = 0
+        activities = client.get_activities_by_date(year_ago.isoformat(), today.isoformat(), "running")
+        for a in activities or []:
+            value = a.get("maxHR") or 0
+            if value > max_hr:
+                max_hr = value
+        if max_hr:
+            result["runningMaxHeartRate"] = int(round(max_hr))
+    except Exception as e:
+        result["errors"].append(f"running max HR: {e}")
+
+    try:
+        url = f"{client.garmin_connect_rhr_url}/{client.display_name}"
+        data = client.connectapi(
+            url,
+            params={"fromDate": year_ago.isoformat(), "untilDate": today.isoformat(), "metricId": 60},
+        )
+        metrics_map = ((data or {}).get("allMetrics") or {}).get("metricsMap") or {}
+        values = [
+            float(m["value"])
+            for m in metrics_map.get("WELLNESS_RESTING_HEART_RATE", [])
+            if m.get("value")
+        ]
+        if values:
+            result["avgRestingHeartRate"] = int(round(sum(values) / len(values)))
+    except Exception as e:
+        result["errors"].append(f"resting HR: {e}")
+
+    return result
+
+
 def handle_command(command: str, payload: dict):
     client = get_client(payload)
 
@@ -96,6 +161,9 @@ def handle_command(command: str, payload: dict):
         data = client.download_activity(activity_id, dl_fmt=client.ActivityDownloadFormat.ORIGINAL)
         b64 = base64.b64encode(data).decode("ascii")
         return {"data": {"base64Data": b64, "filename": f"{activity_id}.zip"}}
+
+    elif command == "get_athlete_metrics":
+        return {"data": get_athlete_metrics(client)}
 
     else:
         raise ValueError(f"Unknown command: {command}")

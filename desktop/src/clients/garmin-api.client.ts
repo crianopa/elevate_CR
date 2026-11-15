@@ -5,6 +5,14 @@ import { inject, singleton } from "tsyringe";
 import { Logger } from "../logger";
 import { GarminRawActivitySummary, GarminActivityDetailsResponse } from "../connectors/garmin/garmin-schema-translator";
 
+export interface GarminAthleteMetrics {
+  lactateThresholdHeartRate: number | null;
+  lactateThresholdSpeedMps: number | null;
+  runningMaxHeartRate: number | null;
+  avgRestingHeartRate: number | null;
+  errors: string[];
+}
+
 @singleton()
 export class GarminApiClient {
   private getRootDir(): string {
@@ -108,6 +116,13 @@ export class GarminApiClient {
     config?: { email?: string; personalApiKey?: string }
   ): Promise<GarminRawActivitySummary[]> {
     return this.executeBridge<GarminRawActivitySummary[]>("get_activities", { start, limit, ...config });
+  }
+
+  /**
+   * Fetch lactate threshold, running max HR and average resting HR from Garmin Connect.
+   */
+  public getAthleteMetrics(config?: { email?: string; personalApiKey?: string }): Promise<GarminAthleteMetrics> {
+    return this.executeBridge<GarminAthleteMetrics>("get_athlete_metrics", { ...config });
   }
 
   /**
