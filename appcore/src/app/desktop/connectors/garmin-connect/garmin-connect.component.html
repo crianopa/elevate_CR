@@ -29,10 +29,16 @@
 
   <mat-card-actions align="end">
     <button mat-stroked-button (click)="onImportAthleteSettings()"
-            [disabled]="isImportingSettings || (desktopSyncService.isSyncing$ | async)"
+            [disabled]="isImportingSettings || isImportingLthHistory || (desktopSyncService.isSyncing$ | async)"
             matTooltip="Import running lactate threshold (HR and pace), running max HR and average resting HR of the last year into Athlete Settings">
       <mat-icon>favorite</mat-icon>
       <span>Import athlete settings</span>
+    </button>
+    <button mat-stroked-button (click)="onImportLthHistory()"
+            [disabled]="isImportingSettings || isImportingLthHistory || (desktopSyncService.isSyncing$ | async)"
+            matTooltip="Create Dated Athlete Settings entries for all Running Lactate Threshold points from the last year">
+      <mat-icon>timeline</mat-icon>
+      <span>Import 1-year LTH history</span>
     </button>
     <button mat-stroked-button (click)="onSyncAll()" [disabled]="(desktopSyncService.isSyncing$ | async)">
       <mat-icon>sync_alt</mat-icon>

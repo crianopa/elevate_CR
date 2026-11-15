@@ -25,6 +25,7 @@ export class GarminConnectComponent extends ConnectorsComponent implements OnIni
   public connectorType = ConnectorType.GARMIN;
   public isConnected = false;
   public isImportingSettings = false;
+  public isImportingLthHistory = false;
   private infoSubscription: Subscription;
 
   constructor(
@@ -80,29 +81,32 @@ export class GarminConnectComponent extends ConnectorsComponent implements OnIni
   public onImportAthleteSettings(): void {
     this.isImportingSettings = true;
     this.garminConnectorService
-      .importAthleteSettings()
-      .then(({ imported }) => {
-        const parts: string[] = [];
-        if (imported.maxHr) {
-          parts.push(`Max HR ${imported.maxHr} bpm`);
-        }
-        if (imported.restHr) {
-          parts.push(`Rest HR ${imported.restHr} bpm`);
-        }
-        if (imported.lthrRunning) {
-          parts.push(`Running LTHR ${imported.lthrRunning} bpm`);
-        }
-        if (imported.runningFtp) {
-          parts.push(`Threshold pace ${imported.runningFtp}s/km`);
-        }
-        this.snackBar.open(`Athlete settings updated from Garmin: ${parts.join(", ")}`, "Ok", { duration: 10000 });
-      })
+      .checkAndPromptAthleteSettingsUpdate(true)
       .catch(err => {
         this.snackBar.open(`Unable to import Garmin athlete settings: ${err?.message || err}`, "Ok", {
           duration: 10000
         });
       })
       .finally(() => (this.isImportingSettings = false));
+  }
+
+  public onImportLthHistory(): void {
+    this.isImportingLthHistory = true;
+    this.garminConnectorService
+      .importLthHistory()
+      .then(({ addedCount, updatedCount, totalPoints }) => {
+        this.snackBar.open(
+          `Imported 1-year running LTH history from Garmin (${totalPoints} points: ${addedCount} added, ${updatedCount} updated).`,
+          "Ok",
+          { duration: 10000 }
+        );
+      })
+      .catch(err => {
+        this.snackBar.open(`Unable to import 1-year LTH history: ${err?.message || err}`, "Ok", {
+          duration: 10000
+        });
+      })
+      .finally(() => (this.isImportingLthHistory = false));
   }
 
   public ngOnDestroy(): void {

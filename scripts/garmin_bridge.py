@@ -88,6 +88,7 @@ def get_athlete_metrics(client: Garmin) -> dict:
     result = {
         "lactateThresholdHeartRate": None,
         "lactateThresholdSpeedMps": None,
+        "lactateThresholdHistory": [],
         "runningMaxHeartRate": None,
         "avgRestingHeartRate": None,
         "errors": [],
@@ -105,6 +106,44 @@ def get_athlete_metrics(client: Garmin) -> dict:
             result["lactateThresholdSpeedMps"] = speed * 10 if speed < 1 else speed
     except Exception as e:
         result["errors"].append(f"lactate threshold: {e}")
+
+    try:
+        lt_range = client.get_lactate_threshold(
+            latest=False,
+            start_date=year_ago.isoformat(),
+            end_date=today.isoformat(),
+            aggregation="daily",
+        ) or {}
+        by_date = {}
+        for entry in lt_range.get("heart_rate") or []:
+            if not isinstance(entry, dict):
+                continue
+            d = entry.get("calendarDate") or entry.get("from") or entry.get("date")
+            val = entry.get("value") if entry.get("value") is not None else entry.get("heartRate")
+            if d and val is not None:
+                by_date.setdefault(str(d)[:10], {})["heartRate"] = int(round(float(val)))
+        for entry in lt_range.get("speed") or []:
+            if not isinstance(entry, dict):
+                continue
+            d = entry.get("calendarDate") or entry.get("from") or entry.get("date")
+            val = entry.get("value") if entry.get("value") is not None else entry.get("speed")
+            if d and val is not None:
+                spd = float(val)
+                by_date.setdefault(str(d)[:10], {})["speedMps"] = spd * 10 if spd < 1 else spd
+
+        history = []
+        last_pair = None
+        for d in sorted(by_date.keys()):
+            pt = by_date[d]
+            hr = pt.get("heartRate")
+            spd = pt.get("speedMps")
+            pair = (hr, round(spd, 4) if spd is not None else None)
+            if pair != last_pair and (hr is not None or spd is not None):
+                history.append({"date": d, "heartRate": hr, "speedMps": spd})
+                last_pair = pair
+        result["lactateThresholdHistory"] = history
+    except Exception as e:
+        result["errors"].append(f"lactate threshold history: {e}")
 
     try:
         max_hr = 0

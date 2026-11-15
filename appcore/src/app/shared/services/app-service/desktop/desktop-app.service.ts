@@ -7,6 +7,7 @@ import { DesktopActivityService } from "../../activity/impl/desktop-activity.ser
 import { UserSettingsService } from "../../user-settings/user-settings.service";
 import { MatSnackBar } from "@angular/material/snack-bar";
 import { DesktopMigrationService } from "../../../../desktop/migration/desktop-migration.service";
+import { GarminConnectorService } from "../../../../desktop/connectors/garmin-connect/garmin-connector.service";
 import _ from "lodash";
 import { UserSettings } from "@elevate/shared/models/user-settings/user-settings.namespace";
 import DesktopUserSettings = UserSettings.DesktopUserSettings;
@@ -18,7 +19,8 @@ export class DesktopAppService extends AppService {
     @Inject(SyncService) protected readonly desktopSyncService: DesktopSyncService,
     @Inject(DesktopMigrationService) protected readonly desktopMigrationService: DesktopMigrationService,
     @Inject(UserSettingsService) protected readonly userSettingsService: UserSettingsService,
-    @Inject(MatSnackBar) protected readonly snackBar: MatSnackBar
+    @Inject(MatSnackBar) protected readonly snackBar: MatSnackBar,
+    @Inject(GarminConnectorService) private readonly garminConnectorService: GarminConnectorService
   ) {
     super(activityService, desktopSyncService);
   }
@@ -26,6 +28,7 @@ export class DesktopAppService extends AppService {
   public init(): void {
     super.init();
     this.recalculateActivitiesIfRequired();
+    this.garminConnectorService.listenForSyncUpdates();
   }
 
   private recalculateActivitiesIfRequired(): void {

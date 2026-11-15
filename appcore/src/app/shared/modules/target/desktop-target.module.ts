@@ -9,6 +9,7 @@ import { StravaConnectorInfoService } from "../../services/strava-connector-info
 import { StravaConnectorInfoDao } from "../../dao/strava-connector-info/strava-connector-info.dao";
 import { FileConnectorInfoService } from "../../services/file-connector-info/file-connector-info.service";
 import { GarminConnectorInfoService } from "../../services/garmin-connector-info/garmin-connector-info.service";
+import { GarminConnectorService } from "../../../desktop/connectors/garmin-connect/garmin-connector.service";
 import { GarminConnectorInfoDao } from "../../dao/garmin-connector-info/garmin-connector-info.dao";
 import { DataStore } from "../../data-store/data-store";
 import { DesktopDataStore } from "../../data-store/impl/desktop-data-store.service";
@@ -59,6 +60,7 @@ import { MapTokenService } from "../../../desktop/mapbox/map-token.service";
     StravaConnectorInfoDao,
     FileConnectorInfoService,
     GarminConnectorInfoService,
+    GarminConnectorService,
     GarminConnectorInfoDao,
     DesktopInsightsService,
     MapTokenService,

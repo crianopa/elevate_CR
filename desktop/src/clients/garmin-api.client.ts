@@ -5,9 +5,16 @@ import { inject, singleton } from "tsyringe";
 import { Logger } from "../logger";
 import { GarminRawActivitySummary, GarminActivityDetailsResponse } from "../connectors/garmin/garmin-schema-translator";
 
+export interface GarminLthHistoryPoint {
+  date: string;
+  heartRate: number | null;
+  speedMps: number | null;
+}
+
 export interface GarminAthleteMetrics {
   lactateThresholdHeartRate: number | null;
   lactateThresholdSpeedMps: number | null;
+  lactateThresholdHistory?: GarminLthHistoryPoint[];
   runningMaxHeartRate: number | null;
   avgRestingHeartRate: number | null;
   errors: string[];
