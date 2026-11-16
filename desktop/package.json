@@ -15,6 +15,7 @@
     "clean:package": "node ../node_modules/del-cli/cli.js ./package/",
     "clean:metadata": "node ../node_modules/del-cli/cli.js ./build_metadata.json",
     "launch:dev:app": "npm run assert-app-exists && run-electron ./dist/desktop.bundle.js",
+    "prepackage:win": "node ./scripts/prepare-wincodesign.js",
     "package:win": "electron-builder build --windows",
     "package:linux": "electron-builder build --linux",
     "package:mac": "electron-builder build --mac --universal",
